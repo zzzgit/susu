@@ -14,5 +14,10 @@
   },
   "author": "",
   "license": "ISC",
-  "description": "Hono REST API for customers using TSV file as DB"
+  "description": "Hono REST API for customers using TSV file as DB",
+  "devDependencies": {
+    "eslint": "^9.39.1",
+    "eslint-config-janus": "^9.0.20",
+    "eslint-plugin-mocha": "^11.2.0"
+  }
 }
