@@ -6,17 +6,30 @@ const DATA_FILE = path.join(DATA_DIR, 'customers.tsv')
 
 class Mutex{
 
-	constructor(){ this._locked = false; this._waiters = [] }
+	constructor(){
+		this._locked = false
+		this._waiters = []
+	}
 
 	lock(){
 		return new Promise((resolve)=> {
 			if (!this._locked){
 				this._locked = true
-				resolve(()=> { this._locked = false; if (this._waiters.length){ this._waiters.shift()() } })
+				resolve(()=> {
+					this._locked = false
+					if (this._waiters.length){
+						this._waiters.shift()()
+					}
+				})
 			} else {
 				this._waiters.push(()=> {
 					this._locked = true
-					resolve(()=> { this._locked = false; if (this._waiters.length){ this._waiters.shift()() } })
+					resolve(()=> {
+						this._locked = false
+						if (this._waiters.length){
+							this._waiters.shift()()
+						}
+					})
 				})
 			}
 		})
@@ -30,7 +43,7 @@ async function ensureDataFile(){
 	try {
 		await fs.mkdir(DATA_DIR, { recursive: true })
 		await fs.access(DATA_FILE)
-	} catch(e){
+	} catch(_e){
 		// create with header
 		const header = 'id\tname\temail\tcreatedAt\n'
 		await fs.writeFile(DATA_FILE, header, 'utf8')

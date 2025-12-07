@@ -16,8 +16,8 @@ export default [
 			},
 			globals: {
 				chrome: 'readonly',
-				// ...globals.node,
-				...globals.browser,
+				...globals.node,
+				// ...globals.browser,
 			},
 		},
 		rules: {
