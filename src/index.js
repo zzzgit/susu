@@ -36,6 +36,20 @@ app.put('/customers/:id', async (c) => {
   const id = c.req.param('id');
   const body = await c.req.json().catch(() => null);
   if (!body) return badRequest('invalid json');
+  const { name, email } = body;
+  try {
+    const replaced = await db.replaceCustomer(id, { name, email });
+    if (!replaced) return notFound(id);
+    return jsonResponse(replaced);
+  } catch (e) {
+    return badRequest(e.message);
+  }
+});
+
+app.patch('/customers/:id', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => null);
+  if (!body) return badRequest('invalid json');
   const updated = await db.updateCustomer(id, body);
   if (!updated) return notFound(id);
   return jsonResponse(updated);

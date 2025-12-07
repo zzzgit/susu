@@ -107,6 +107,23 @@ export async function updateCustomer(id, { name, email }) {
   }
 }
 
+// Add a replace function for full (PUT) updates: require both name and email
+export async function replaceCustomer(id, { name, email }) {
+  const release = await mutex.lock();
+  try {
+    const rows = await readAll();
+    const idx = rows.findIndex(r => String(r.id) === String(id));
+    if (idx === -1) return null;
+    if (!name || !email) throw new Error('PUT requires name and email');
+    // preserve id and createdAt
+    rows[idx] = { id: String(rows[idx].id), name, email, createdAt: rows[idx].createdAt };
+    await writeAll(rows);
+    return rows[idx];
+  } finally {
+    release();
+  }
+}
+
 export async function deleteCustomer(id) {
   const release = await mutex.lock();
   try {
