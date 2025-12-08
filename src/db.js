@@ -43,9 +43,9 @@ async function ensureDataFile(){
 	try {
 		await fs.mkdir(DATA_DIR, { recursive: true })
 		await fs.access(DATA_FILE)
-	} catch(_e){
+	} catch {
 		// create with header
-		const header = 'id\tname\temail\tcreatedAt\n'
+		const header = 'id\tgender\tname\tphone\tindex\tcreatedAt\n'
 		await fs.writeFile(DATA_FILE, header, 'utf8')
 	}
 }
@@ -74,10 +74,10 @@ async function readAll(){
 }
 
 async function writeAll(rows){
-	const header = ['id', 'name', 'email', 'createdAt']
+	const header = ['id', 'gender', 'name', 'phone', 'index', 'createdAt']
 	const lines = [header.join('\t')]
 	for (const r of rows){
-		lines.push([r.id, r.name ?? '', r.email ?? '', r.createdAt ?? ''].join('\t'))
+		lines.push([r.id, r.gender ?? '', r.name ?? '', r.phone ?? '', r.index ?? '', r.createdAt ?? ''].join('\t'))
 	}
 	await fs.writeFile(DATA_FILE, lines.join('\n') + '\n', 'utf8')
 }
@@ -91,8 +91,13 @@ export async function getCustomerById(id){
 	return rows.find(r=> String(r.id) === String(id)) || null
 }
 
-export async function createCustomer({ name, email }){
-	if (!name || !email){ throw new Error('name and email are required') }
+export async function createCustomer({
+	gender,
+	name,
+	phone,
+	index,
+}){
+	if (!name || !phone){ throw new Error('name and phone are required') }
 	const release = await mutex.lock()
 	try {
 		const rows = await readAll()
@@ -100,7 +105,7 @@ export async function createCustomer({ name, email }){
 		const nextId = ids.length ? Math.max(...ids) + 1 : 1
 		const createdAt = new Date().toISOString()
 		const customer = {
-			id: String(nextId), name, email, createdAt,
+			id: String(nextId), gender: gender ?? '', name, phone, index: index ?? '', createdAt,
 		}
 		rows.push(customer)
 		await writeAll(rows)
@@ -110,14 +115,16 @@ export async function createCustomer({ name, email }){
 	}
 }
 
-export async function updateCustomer(id, { name, email }){
+export async function updateCustomer(id, updates){
 	const release = await mutex.lock()
 	try {
 		const rows = await readAll()
 		const idx = rows.findIndex(r=> String(r.id) === String(id))
 		if (idx === -1){ return null }
-		if (name !== undefined){ rows[idx].name = name }
-		if (email !== undefined){ rows[idx].email = email }
+		if (updates.gender !== undefined){ rows[idx].gender = updates.gender }
+		if (updates.name !== undefined){ rows[idx].name = updates.name }
+		if (updates.phone !== undefined){ rows[idx].phone = updates.phone }
+		if (updates.index !== undefined){ rows[idx].index = updates.index }
 		await writeAll(rows)
 		return rows[idx]
 	} finally {
@@ -125,17 +132,22 @@ export async function updateCustomer(id, { name, email }){
 	}
 }
 
-// Add a replace function for full (PUT) updates: require both name and email
-export async function replaceCustomer(id, { name, email }){
+// Add a replace function for full (PUT) updates: require both name and phone
+export async function replaceCustomer(id, {
+	gender,
+	name,
+	phone,
+	index,
+}){
 	const release = await mutex.lock()
 	try {
 		const rows = await readAll()
 		const idx = rows.findIndex(r=> String(r.id) === String(id))
 		if (idx === -1){ return null }
-		if (!name || !email){ throw new Error('PUT requires name and email') }
+		if (!name || !phone){ throw new Error('PUT requires name and phone') }
 		// preserve id and createdAt
 		rows[idx] = {
-			id: String(rows[idx].id), name, email, createdAt: rows[idx].createdAt,
+			id: String(rows[idx].id), gender: gender ?? '', name, phone, index: index ?? '', createdAt: rows[idx].createdAt,
 		}
 		await writeAll(rows)
 		return rows[idx]

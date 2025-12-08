@@ -22,10 +22,20 @@ app.get('/customers/:id', async(c)=> {
 app.post('/customers', async(c)=> {
 	const body = await c.req.json().catch(()=> null)
 	if (!body){ return badRequest('invalid json') }
-	const { name, email } = body
-	if (!name || !email){ return badRequest('name and email required') }
+	const {
+		gender,
+		name,
+		phone,
+		index,
+	} = body
+	if (!name || !phone){ return badRequest('name and phone required') }
 	try {
-		const createdCustomer = await db.createCustomer({ name, email })
+		const createdCustomer = await db.createCustomer({
+			gender,
+			name,
+			phone,
+			index,
+		})
 		return created(createdCustomer)
 	} catch(e){
 		return badRequest(e.message)
@@ -36,9 +46,19 @@ app.put('/customers/:id', async(c)=> {
 	const id = c.req.param('id')
 	const body = await c.req.json().catch(()=> null)
 	if (!body){ return badRequest('invalid json') }
-	const { name, email } = body
+	const {
+		gender,
+		name,
+		phone,
+		index,
+	} = body
 	try {
-		const replaced = await db.replaceCustomer(id, { name, email })
+		const replaced = await db.replaceCustomer(id, {
+			gender,
+			name,
+			phone,
+			index,
+		})
 		if (!replaced){ return notFound(id) }
 		return jsonResponse(replaced)
 	} catch(e){
@@ -50,6 +70,7 @@ app.patch('/customers/:id', async(c)=> {
 	const id = c.req.param('id')
 	const body = await c.req.json().catch(()=> null)
 	if (!body){ return badRequest('invalid json') }
+	// allow partial updates; the db.updateCustomer accepts fields present in body
 	const updated = await db.updateCustomer(id, body)
 	if (!updated){ return notFound(id) }
 	return jsonResponse(updated)
@@ -62,7 +83,7 @@ app.delete('/customers/:id', async(c)=> {
 	return new Response(null, { status: 204 })
 })
 
-const server = serve({ fetch: app.fetch, port: process.env.PORT || 3000 })
+serve({ fetch: app.fetch, port: process.env.PORT || 3000 })
 
 console.log('Server running on http://localhost:' + (process.env.PORT || 3000))
 
