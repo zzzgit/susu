@@ -1,171 +1,93 @@
-import fs from 'fs/promises'
-import path from 'path'
+import { PrismaClient } from '@prisma/client'
 
-const DATA_DIR = path.join(process.cwd(), 'data')
-const DATA_FILE = path.join(DATA_DIR, 'customers.tsv')
+const prisma = new PrismaClient()
 
-class Mutex{
-
-	constructor(){
-		this._locked = false
-		this._waiters = []
+function normalizeCustomer(row){
+	if (!row){ return null }
+	return {
+		id: String(row.id),
+		gender: row.gender ?? '',
+		name: row.name,
+		phone: row.phone,
+		index: row.index ?? '',
+		createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
 	}
-
-	lock(){
-		return new Promise((resolve)=> {
-			if (!this._locked){
-				this._locked = true
-				resolve(()=> {
-					this._locked = false
-					if (this._waiters.length){
-						this._waiters.shift()()
-					}
-				})
-			} else {
-				this._waiters.push(()=> {
-					this._locked = true
-					resolve(()=> {
-						this._locked = false
-						if (this._waiters.length){
-							this._waiters.shift()()
-						}
-					})
-				})
-			}
-		})
-	}
-
-}
-
-const mutex = new Mutex()
-
-async function ensureDataFile(){
-	try {
-		await fs.mkdir(DATA_DIR, { recursive: true })
-		await fs.access(DATA_FILE)
-	} catch {
-		// create with header
-		const header = 'id\tgender\tname\tphone\tindex\tcreatedAt\n'
-		await fs.writeFile(DATA_FILE, header, 'utf8')
-	}
-}
-
-function parseRows(text){
-	const lines = text.split(/\r?\n/).filter(Boolean)
-	if (lines.length === 0){ return [] }
-	const header = lines[0].split('\t')
-	const rows = lines.slice(1).map((line)=> {
-		const cols = line.split('\t')
-		const obj = {}
-		for (const [i, element] of header.entries()){
-			obj[element] = cols[i] ?? ''
-		}
-		// normalize id
-		if (obj.id){ obj.id = String(obj.id) }
-		return obj
-	})
-	return rows
-}
-
-async function readAll(){
-	await ensureDataFile()
-	const txt = await fs.readFile(DATA_FILE, 'utf8')
-	return parseRows(txt)
-}
-
-async function writeAll(rows){
-	const header = ['id', 'gender', 'name', 'phone', 'index', 'createdAt']
-	const lines = [header.join('\t')]
-	for (const r of rows){
-		lines.push([r.id, r.gender ?? '', r.name ?? '', r.phone ?? '', r.index ?? '', r.createdAt ?? ''].join('\t'))
-	}
-	await fs.writeFile(DATA_FILE, lines.join('\n') + '\n', 'utf8')
 }
 
 export async function getAllCustomers(){
-	return await readAll()
+	const rows = await prisma.customer.findMany({ orderBy: { id: 'asc' } })
+	return rows.map(normalizeCustomer)
 }
 
 export async function getCustomerById(id){
-	const rows = await readAll()
-	return rows.find(r=> String(r.id) === String(id)) || null
+	const numId = Number(id)
+	if (Number.isNaN(numId)){ return null }
+	const row = await prisma.customer.findUnique({ where: { id: numId } })
+	return normalizeCustomer(row)
 }
 
 export async function createCustomer({
-	gender,
-	name,
-	phone,
-	index,
+	gender, name, phone, index,
 }){
 	if (!name || !phone){ throw new Error('name and phone are required') }
-	const release = await mutex.lock()
-	try {
-		const rows = await readAll()
-		const ids = rows.map(r=> Number(r.id)).filter(n=> !isNaN(n))
-		const nextId = ids.length ? Math.max(...ids) + 1 : 1
-		const createdAt = new Date().toISOString()
-		const customer = {
-			id: String(nextId), gender: gender ?? '', name, phone, index: index ?? '', createdAt,
-		}
-		rows.push(customer)
-		await writeAll(rows)
-		return customer
-	} finally {
-		release()
-	}
+	const created = await prisma.customer.create({
+		data: {
+			gender: gender ?? null,
+			name,
+			phone,
+			index: index ?? null,
+		},
+	})
+	return normalizeCustomer(created)
 }
 
 export async function updateCustomer(id, updates){
-	const release = await mutex.lock()
+	const numId = Number(id)
+	if (Number.isNaN(numId)){ return null }
+	const data = {}
+	if (Object.prototype.hasOwnProperty.call(updates, 'gender')){ data.gender = updates.gender ?? null }
+	if (Object.prototype.hasOwnProperty.call(updates, 'name')){ data.name = updates.name }
+	if (Object.prototype.hasOwnProperty.call(updates, 'phone')){ data.phone = updates.phone }
+	if (Object.prototype.hasOwnProperty.call(updates, 'index')){ data.index = updates.index ?? null }
 	try {
-		const rows = await readAll()
-		const idx = rows.findIndex(r=> String(r.id) === String(id))
-		if (idx === -1){ return null }
-		if (updates.gender !== undefined){ rows[idx].gender = updates.gender }
-		if (updates.name !== undefined){ rows[idx].name = updates.name }
-		if (updates.phone !== undefined){ rows[idx].phone = updates.phone }
-		if (updates.index !== undefined){ rows[idx].index = updates.index }
-		await writeAll(rows)
-		return rows[idx]
-	} finally {
-		release()
+		const updated = await prisma.customer.update({ where: { id: numId }, data })
+		return normalizeCustomer(updated)
+	} catch(e){
+		// If not found, Prisma throws; return null
+		if (e && e.code === 'P2025'){ return null }
+		throw e
 	}
 }
 
-// Add a replace function for full (PUT) updates: require both name and phone
 export async function replaceCustomer(id, {
-	gender,
-	name,
-	phone,
-	index,
+	gender, name, phone, index,
 }){
-	const release = await mutex.lock()
+	const numId = Number(id)
+	if (Number.isNaN(numId)){ return null }
+	if (!name || !phone){ throw new Error('PUT requires name and phone') }
+	const data = {
+		gender: gender ?? null,
+		name,
+		phone,
+		index: index ?? null,
+	}
 	try {
-		const rows = await readAll()
-		const idx = rows.findIndex(r=> String(r.id) === String(id))
-		if (idx === -1){ return null }
-		if (!name || !phone){ throw new Error('PUT requires name and phone') }
-		// preserve id and createdAt
-		rows[idx] = {
-			id: String(rows[idx].id), gender: gender ?? '', name, phone, index: index ?? '', createdAt: rows[idx].createdAt,
-		}
-		await writeAll(rows)
-		return rows[idx]
-	} finally {
-		release()
+		const replaced = await prisma.customer.update({ where: { id: numId }, data })
+		return normalizeCustomer(replaced)
+	} catch(e){
+		if (e && e.code === 'P2025'){ return null }
+		throw e
 	}
 }
 
 export async function deleteCustomer(id){
-	const release = await mutex.lock()
+	const numId = Number(id)
+	if (Number.isNaN(numId)){ return false }
 	try {
-		const rows = await readAll()
-		const idx = rows.findIndex(r=> String(r.id) === String(id))
-		if (idx === -1){ return false }
-		rows.splice(idx, 1)
-		await writeAll(rows)
+		await prisma.customer.delete({ where: { id: numId } })
 		return true
-	} finally {
-		release()
+	} catch(e){
+		if (e && e.code === 'P2025'){ return false }
+		throw e
 	}
 }
