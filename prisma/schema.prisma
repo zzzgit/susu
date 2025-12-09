@@ -8,9 +8,10 @@ datasource db {
 
 model Customer {
   id        Int      @id @default(autoincrement())
-  gender    String?
+  gender    Boolean?
   name      String
-  phone     String
-  index     String?
+  phone     String?
+  extra     String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

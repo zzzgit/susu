@@ -9,8 +9,9 @@ function normalizeCustomer(row){
 		gender: row.gender ?? '',
 		name: row.name,
 		phone: row.phone,
-		index: row.index ?? '',
+		extra: row.extra ?? '',
 		createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+		updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt,
 	}
 }
 
@@ -27,15 +28,15 @@ export async function getCustomerById(id){
 }
 
 export async function createCustomer({
-	gender, name, phone, index,
+	gender, name, phone, extra,
 }){
-	if (!name || !phone){ throw new Error('name and phone are required') }
+	if (!name){ throw new Error('name is required') }
 	const created = await prisma.customer.create({
 		data: {
 			gender: gender ?? null,
 			name,
-			phone,
-			index: index ?? null,
+			phone: phone ?? null,
+			extra: extra ?? null,
 		},
 	})
 	return normalizeCustomer(created)
@@ -48,7 +49,7 @@ export async function updateCustomer(id, updates){
 	if (Object.prototype.hasOwnProperty.call(updates, 'gender')){ data.gender = updates.gender ?? null }
 	if (Object.prototype.hasOwnProperty.call(updates, 'name')){ data.name = updates.name }
 	if (Object.prototype.hasOwnProperty.call(updates, 'phone')){ data.phone = updates.phone }
-	if (Object.prototype.hasOwnProperty.call(updates, 'index')){ data.index = updates.index ?? null }
+	if (Object.prototype.hasOwnProperty.call(updates, 'extra')){ data.extra = updates.extra ?? null }
 	try {
 		const updated = await prisma.customer.update({ where: { id: numId }, data })
 		return normalizeCustomer(updated)
@@ -60,16 +61,16 @@ export async function updateCustomer(id, updates){
 }
 
 export async function replaceCustomer(id, {
-	gender, name, phone, index,
+	gender, name, phone, extra,
 }){
 	const numId = Number(id)
 	if (Number.isNaN(numId)){ return null }
-	if (!name || !phone){ throw new Error('PUT requires name and phone') }
+	if (!name){ throw new Error('PUT requires name') }
 	const data = {
 		gender: gender ?? null,
 		name,
-		phone,
-		index: index ?? null,
+		phone: phone ?? null,
+		extra: extra ?? null,
 	}
 	try {
 		const replaced = await prisma.customer.update({ where: { id: numId }, data })

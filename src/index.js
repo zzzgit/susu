@@ -7,7 +7,7 @@ const app = new Hono()
 
 app.get('/', c=> c.text('Hono Customer API'))
 
-app.get('/customers', async(c)=> {
+app.get('/customers', async(_c)=> {
 	const rows = await db.getAllCustomers()
 	return new Response(JSON.stringify(rows), { headers: { 'Content-Type': 'application/json' } })
 })
@@ -26,15 +26,15 @@ app.post('/customers', async(c)=> {
 		gender,
 		name,
 		phone,
-		index,
+		extra,
 	} = body
-	if (!name || !phone){ return badRequest('name and phone required') }
+	if (!name){ return badRequest('name required') }
 	try {
 		const createdCustomer = await db.createCustomer({
 			gender,
 			name,
 			phone,
-			index,
+			extra,
 		})
 		return created(createdCustomer)
 	} catch(e){
@@ -50,14 +50,14 @@ app.put('/customers/:id', async(c)=> {
 		gender,
 		name,
 		phone,
-		index,
+		extra,
 	} = body
 	try {
 		const replaced = await db.replaceCustomer(id, {
 			gender,
 			name,
 			phone,
-			index,
+			extra,
 		})
 		if (!replaced){ return notFound(id) }
 		return jsonResponse(replaced)
