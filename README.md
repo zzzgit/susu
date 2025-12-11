@@ -1,7 +1,7 @@
 Hono Customer API
 
 - Node + Hono
-- Stores customers in data/customers.tsv
+- Stores customers in MySQL via Prisma
 
 Endpoints:
 - GET /customers
@@ -13,4 +13,7 @@ Endpoints:
 
 Run:
 - npm install
+- Set DATABASE_URL in .env to your MySQL connection string, e.g.:
+  DATABASE_URL="mysql://root:password@127.0.0.1:3306/susu_db"
+- npx prisma migrate dev --name init
 - npm start

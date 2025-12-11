@@ -7,19 +7,19 @@
     "start": "node src/index.js",
     "dev": "npx nodemon --watch src --exec node src/index.js",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev --name init",
-    "prepare": "prisma generate"
+    "prisma:migrate": "prisma migrate dev --name init --schema prisma/schema.prisma --config prisma/prisma.config.js"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.6",
-    "hono": "^4.10.7",
-    "@prisma/client": "^5.8.0"
+    "@hono/node-server": "^1.19.7",
+    "hono": "^4.10.8",
+    "@prisma/client": "^7.1.0",
+    "mysql2": "^3.15.3"
   },
-  "author": "",
+  "author": "zzzgit",
   "license": "ISC",
-  "description": "Hono REST API for customers using SQLite + Prisma",
+  "description": "Hono REST API for customers using MySQL + Prisma",
   "devDependencies": {
-    "prisma": "^5.8.0",
+    "prisma": "^7.1.0",
     "eslint": "^9.39.1",
     "eslint-config-janus": "^9.0.20",
     "eslint-plugin-mocha": "^11.2.0"

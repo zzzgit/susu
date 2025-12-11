@@ -3,12 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
 }
 
 model Customer {
   id        Int      @id @default(autoincrement())
-  gender    Boolean?
+  gender    Int?
   name      String
   phone     String?
   extra     String?
