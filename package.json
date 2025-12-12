@@ -4,10 +4,10 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
-    "prisma:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
-    "prisma:studio": "prisma studio --schema=prisma/schema.prisma",
-    "prisma:reset": "prisma migrate reset --schema=prisma/schema.prisma --force",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:reset": "prisma migrate reset --force",
     "start": "node src/index.js"
   },
   "dependencies": {
