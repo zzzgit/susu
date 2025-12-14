@@ -24,6 +24,7 @@
   "devDependencies": {
     "eslint": "^9.39.1",
     "eslint-config-janus": "^9.0.20",
-    "eslint-plugin-mocha": "^11.2.0"
+    "eslint-plugin-mocha": "^11.2.0",
+    "node-fetch": "^3.3.2"
   }
 }
