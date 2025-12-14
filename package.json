@@ -12,20 +12,18 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.7",
-    "@prisma/adapter-mariadb": "^7.1.0",
+    "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.1.0",
     "dotenv": "^16.3.1",
     "hono": "^4.10.8",
-    "mariadb": "^3.4.5",
-    "mysql2": "^3.15.3"
+    "prisma": "^7.1.0"
   },
   "author": "zzzgit",
   "license": "ISC",
-  "description": "Hono REST API for customers using MySQL + Prisma",
+  "description": "Hono REST API for customers using postgresql + Prisma",
   "devDependencies": {
     "eslint": "^9.39.1",
     "eslint-config-janus": "^9.0.20",
-    "eslint-plugin-mocha": "^11.2.0",
-    "prisma": "^7.1.0"
+    "eslint-plugin-mocha": "^11.2.0"
   }
 }
