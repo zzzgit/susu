@@ -26,8 +26,13 @@ app.get(`${apiVersion}/customers`, async(c)=> {
 	if (extra){ filters.extra = extra }
 	if (id){ filters.id = +id }
 
-	const rows = await db.getAllCustomers(filters)
-	return new Response(JSON.stringify(rows), { headers: { 'Content-Type': 'application/json' } })
+	// 分頁參數，單數一個函數進行解析
+	const page = parseInt(c.req.query('page')) || 1
+	const pageSize = parseInt(c.req.query('pageSize')) || 10
+	const pagination = { page, pageSize }
+
+	const result = await db.getAllCustomers(filters, pagination)
+	return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } })
 })
 
 app.get(`${apiVersion}/customers/:id`, async(c)=> {

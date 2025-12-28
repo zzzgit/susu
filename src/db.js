@@ -31,7 +31,7 @@ function normalizeCustomer(row){
 	}
 }
 
-export async function getAllCustomers(filters = {}){
+export async function getAllCustomers(filters = {}, pagination = {}){
 	const where = {}
 
 	if (filters.name){
@@ -50,11 +50,31 @@ export async function getAllCustomers(filters = {}){
 		where.extra = { contains: filters.extra, mode: 'insensitive' }
 	}
 
+	const whereClause = Object.keys(where).length > 0 ? where : undefined
+
+	// 獲取總數
+	const total = await prisma.customer.count({ where: whereClause })
+
+	// 分頁查詢
+	const { page = 1, pageSize = 10 } = pagination
+	const skip = (page - 1) * pageSize
+
 	const rows = await prisma.customer.findMany({
-		where: Object.keys(where).length > 0 ? where : undefined,
+		where: whereClause,
 		orderBy: { id: 'asc' },
+		skip,
+		take: pageSize,
 	})
-	return rows.map(normalizeCustomer)
+
+	return {
+		data: rows.map(normalizeCustomer),
+		pagination: {
+			page,
+			pageSize,
+			total,
+			totalPages: Math.ceil(total / pageSize),
+		},
+	}
 }
 
 export async function getCustomerById(id){
