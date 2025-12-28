@@ -12,8 +12,21 @@ const apiVersion = '/api/v1'
 app.get('/', c=> c.text('Hono  '))
 app.get(`${apiVersion}/`, c=> c.text('Hono Customer API'))
 
-app.get(`${apiVersion}/customers`, async(_c)=> {
-	const rows = await db.getAllCustomers()
+app.get(`${apiVersion}/customers`, async(c)=> {
+	const filters = {}
+	const name = c.req.query('name')
+	const gender = c.req.query('gender')
+	const phone = c.req.query('phone')
+	const id = c.req.query('id')
+	const extra = c.req.query('extra')
+
+	if (name){ filters.name = name }
+	if (gender){ filters.gender = gender }
+	if (phone){ filters.phone = phone }
+	if (extra){ filters.extra = extra }
+	if (id){ filters.id = +id }
+
+	const rows = await db.getAllCustomers(filters)
 	return new Response(JSON.stringify(rows), { headers: { 'Content-Type': 'application/json' } })
 })
 

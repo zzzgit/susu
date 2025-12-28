@@ -26,13 +26,34 @@ function normalizeCustomer(row){
 		name: row.name,
 		phone: row.phone,
 		extra: row.extra ?? '',
-		createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
-		updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt,
+		createdAt: row.createdAt instanceof Date ? row.createdAt.valueOf() : row.createdAt,
+		updatedAt: row.updatedAt instanceof Date ? row.updatedAt.valueOf() : row.updatedAt,
 	}
 }
 
-export async function getAllCustomers(){
-	const rows = await prisma.customer.findMany({ orderBy: { id: 'asc' } })
+export async function getAllCustomers(filters = {}){
+	const where = {}
+
+	if (filters.name){
+		where.name = { contains: filters.name, mode: 'insensitive' }
+	}
+	if(filters.id){
+		where.id = filters.id
+	}
+	if (filters.gender){
+		where.gender = filters.gender
+	}
+	if (filters.phone){
+		where.phone = { contains: filters.phone }
+	}
+	if (filters.extra){
+		where.extra = { contains: filters.extra, mode: 'insensitive' }
+	}
+
+	const rows = await prisma.customer.findMany({
+		where: Object.keys(where).length > 0 ? where : undefined,
+		orderBy: { id: 'asc' },
+	})
 	return rows.map(normalizeCustomer)
 }
 
