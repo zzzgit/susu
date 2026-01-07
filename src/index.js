@@ -3,8 +3,10 @@ import { serve } from '@hono/node-server'
 import { badRequest, created, jsonResponse, notFound } from './handlers.js'
 import * as db from './db.js'
 import { cors } from 'hono/cors'
+import { trimTrailingSlash } from 'hono/trailing-slash'
 
 const app = new Hono()
+app.use('*', trimTrailingSlash())
 app.use('/api/*', cors())
 
 const apiVersion = '/api/v1'
@@ -97,6 +99,26 @@ app.patch(`${apiVersion}/customers/:id`, async(c)=> {
 	const updated = await db.updateCustomer(id, body)
 	if (!updated){ return notFound(id) }
 	return jsonResponse(updated)
+})
+
+app.delete(`${apiVersion}/customers`, async(c)=> {
+	const body = await c.req.json().catch(()=> null)
+	if (!body){ return badRequest('invalid json') }
+
+	const { ids } = body
+	if (!ids || !Array.isArray(ids) || ids.length === 0){
+		return badRequest('ids array required')
+	}
+
+	try {
+		const deletedCount = await db.deleteCustomers(ids)
+		return jsonResponse({
+			deleted: deletedCount,
+			message: `Successfully deleted ${deletedCount} customer(s)`,
+		})
+	} catch(e){
+		return badRequest(e.message)
+	}
 })
 
 app.delete(`${apiVersion}/customers/:id`, async(c)=> {

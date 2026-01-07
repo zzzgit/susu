@@ -156,3 +156,12 @@ export async function deleteCustomer(id){
 		throw e
 	}
 }
+
+export function deleteCustomers(ids){
+	if (!Array.isArray(ids) || ids.length === 0){ return 0 }
+	const numIds = ids.map(id=> Number(id)).filter(id=> !Number.isNaN(id))
+	if (numIds.length === 0){ return 0 }
+	return prisma.customer.deleteMany({
+		where: { id: { in: numIds } },
+	}).then(res=> res.count)
+}
