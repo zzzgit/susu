@@ -35,11 +35,15 @@ function normalizeCustomer(row){
 		extra: row.extra ?? '',
 		createdAt: row.createdAt instanceof Date ? row.createdAt.valueOf() : row.createdAt,
 		updatedAt: row.updatedAt instanceof Date ? row.updatedAt.valueOf() : row.updatedAt,
+		deletedAt: row.deletedAt instanceof Date ? row.deletedAt.valueOf() : row.deletedAt,
 	}
 }
 
 export async function getAllCustomers(filters = {}, pagination = {}){
-	const where = {}
+	const where = {
+		// 只查詢未刪除的記錄
+		deletedAt: null,
+	}
 
 	if (filters.name){
 		where.name = { contains: filters.name, mode: 'insensitive' }
@@ -87,7 +91,13 @@ export async function getAllCustomers(filters = {}, pagination = {}){
 export async function getCustomerById(id){
 	const numId = Number(id)
 	if (Number.isNaN(numId)){ return null }
-	const row = await prisma.customer.findUnique({ where: { id: numId } })
+	const row = await prisma.customer.findFirst({
+		where: {
+			id: numId,
+			// 只查詢未刪除的記錄
+			deletedAt: null,
+		},
+	})
 	return normalizeCustomer(row)
 }
 
@@ -145,23 +155,35 @@ export async function replaceCustomer(id, {
 	}
 }
 
-export async function deleteCustomer(id){
+export function deleteCustomer(id){
 	const numId = Number(id)
 	if (Number.isNaN(numId)){ return false }
-	try {
-		await prisma.customer.delete({ where: { id: numId } })
-		return true
-	} catch(e){
-		if (e && e.code === 'P2025'){ return false }
-		throw e
-	}
+	// 軟刪除：設置 deletedAt 時間戳
+	return prisma.customer.updateMany({
+		where: {
+			id: numId,
+			// 只刪除未刪除的記錄
+			deletedAt: null,
+		},
+		data: {
+			deletedAt: new Date(),
+		},
+	}).then(res=> res.count > 0)
 }
 
 export function deleteCustomers(ids){
 	if (!Array.isArray(ids) || ids.length === 0){ return 0 }
 	const numIds = ids.map(id=> Number(id)).filter(id=> !Number.isNaN(id))
 	if (numIds.length === 0){ return 0 }
-	return prisma.customer.deleteMany({
-		where: { id: { in: numIds } },
+	// 軟刪除：設置 deletedAt 時間戳
+	return prisma.customer.updateMany({
+		where: {
+			id: { in: numIds },
+			// 只刪除未刪除的記錄
+			deletedAt: null,
+		},
+		data: {
+			deletedAt: new Date(),
+		},
 	}).then(res=> res.count)
 }
