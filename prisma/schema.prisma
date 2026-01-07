@@ -6,13 +6,8 @@ datasource db {
     provider = "postgresql"
 }
 
-enum Gender {
-    F
-    M
-}
-
 model customer {
-    id        Int       @id @default(autoincrement())
+    id        String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
     name      String
     gender    Gender?
     phone     String?
@@ -20,4 +15,9 @@ model customer {
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
     deletedAt DateTime?
+}
+
+enum Gender {
+    F
+    M
 }
