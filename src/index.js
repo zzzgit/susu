@@ -158,24 +158,20 @@ app.delete(`${apiVersion}/customers`, async(c)=> {
 		return badRequest('ids array required')
 	}
 
-	try {
-		// 轉換 ULID 入參為 UUID
-		const convertedIds = ids.map((ulid)=> {
-			try {
-				const uuid = ulidToUuid(ulid)
-				return uuid
-			} catch{
-				return ulid
-			}
-		})
-		const deletedCount = await db.deleteCustomers(convertedIds)
-		return jsonResponse({
-			deleted: deletedCount,
-			message: `Successfully deleted ${deletedCount} customer(s)`,
-		})
-	} catch(e){
-		return badRequest(e.message)
-	}
+	// 轉換 ULID 入參為 UUID
+	const convertedIds = ids.map((ulid)=> {
+		try {
+			const uuid = ulidToUuid(ulid)
+			return uuid
+		} catch(e){
+			return ulid
+		}
+	})
+	const deletedCount = await db.deleteCustomers(convertedIds)
+	return jsonResponse({
+		deleted: deletedCount,
+		message: `Successfully deleted ${deletedCount} customer(s)`,
+	})
 })
 
 app.delete(`${apiVersion}/customers/:id`, async(c)=> {

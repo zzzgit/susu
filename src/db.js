@@ -79,21 +79,22 @@ export async function getAllCustomers(filters = {}, pagination = {}){
 
 	return {
 		data: rows.map(normalizeCustomer),
-		pagination: {
-			page,
-			pageSize,
-			total,
-			totalPages: Math.ceil(total / pageSize),
+		meta: {
+			pagination: {
+				page,
+				pageSize,
+				total,
+				totalPages: Math.ceil(total / pageSize),
+			},
 		},
 	}
 }
 
 export async function getCustomerById(id){
-	const numId = Number(id)
-	if (Number.isNaN(numId)){ return null }
+	if (!id || typeof id !== 'string'){ return null }
 	const row = await prisma.customer.findFirst({
 		where: {
-			id: numId,
+			id: id,
 			// 只查詢未刪除的記錄
 			deletedAt: null,
 		},
@@ -117,15 +118,14 @@ export async function createCustomer({
 }
 
 export async function updateCustomer(id, updates){
-	const numId = Number(id)
-	if (Number.isNaN(numId)){ return null }
+	if (!id || typeof id !== 'string'){ return null }
 	const data = {}
 	if (Object.prototype.hasOwnProperty.call(updates, 'gender')){ data.gender = updates.gender ?? null }
 	if (Object.prototype.hasOwnProperty.call(updates, 'name')){ data.name = updates.name }
 	if (Object.prototype.hasOwnProperty.call(updates, 'phone')){ data.phone = updates.phone }
 	if (Object.prototype.hasOwnProperty.call(updates, 'extra')){ data.extra = updates.extra ?? null }
 	try {
-		const updated = await prisma.customer.update({ where: { id: numId }, data })
+		const updated = await prisma.customer.update({ where: { id: id }, data })
 		return normalizeCustomer(updated)
 	} catch(e){
 		// If not found, Prisma throws; return null
@@ -137,8 +137,7 @@ export async function updateCustomer(id, updates){
 export async function replaceCustomer(id, {
 	gender, name, phone, extra,
 }){
-	const numId = Number(id)
-	if (Number.isNaN(numId)){ return null }
+	if (!id || typeof id !== 'string'){ return null }
 	if (!name){ throw new Error('PUT requires name') }
 	const data = {
 		gender: gender ?? null,
@@ -147,7 +146,7 @@ export async function replaceCustomer(id, {
 		extra: extra ?? null,
 	}
 	try {
-		const replaced = await prisma.customer.update({ where: { id: numId }, data })
+		const replaced = await prisma.customer.update({ where: { id: id }, data })
 		return normalizeCustomer(replaced)
 	} catch(e){
 		if (e && e.code === 'P2025'){ return null }
@@ -156,12 +155,11 @@ export async function replaceCustomer(id, {
 }
 
 export function deleteCustomer(id){
-	const numId = Number(id)
-	if (Number.isNaN(numId)){ return false }
+	if (!id || typeof id !== 'string'){ return false }
 	// 軟刪除：設置 deletedAt 時間戳
 	return prisma.customer.updateMany({
 		where: {
-			id: numId,
+			id: id,
 			// 只刪除未刪除的記錄
 			deletedAt: null,
 		},
@@ -173,12 +171,13 @@ export function deleteCustomer(id){
 
 export function deleteCustomers(ids){
 	if (!Array.isArray(ids) || ids.length === 0){ return 0 }
-	const numIds = ids.map(id=> Number(id)).filter(id=> !Number.isNaN(id))
-	if (numIds.length === 0){ return 0 }
+	// 过滤出有效的字符串 ID
+	const validIds = ids.filter(id=> id && typeof id === 'string')
+	if (validIds.length === 0){ return 0 }
 	// 軟刪除：設置 deletedAt 時間戳
 	return prisma.customer.updateMany({
 		where: {
-			id: { in: numIds },
+			id: { in: validIds },
 			// 只刪除未刪除的記錄
 			deletedAt: null,
 		},
