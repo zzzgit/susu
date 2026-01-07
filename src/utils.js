@@ -8,7 +8,7 @@ const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
  * @param {string} uuid - 符合 RFC 9562 的 UUID 字符串
  * @returns {string} 26位的 ULID 字符串
  */
-function uuidToUlid(uuid){
+const uuidToUlid = (uuid)=> {
 	// 1. 去掉连字符并转为 Hex
 	const hex = uuid.replace(/-/g, '')
 	if (hex.length !== 32){ throw new Error('Invalid UUID length') }
@@ -30,7 +30,7 @@ function uuidToUlid(uuid){
  * @param {string} ulid - 26位的 ULID 字符串
  * @returns {string} 标准 UUID 格式字符串
  */
-function ulidToUuid(ulid){
+const ulidToUuid = (ulid)=> {
 	if (ulid.length !== 26){ throw new Error('Invalid ULID length') }
 
 	// 1. 将 Base32 转回 BigInt
@@ -54,9 +54,7 @@ function ulidToUuid(ulid){
 	].join('-')
 }
 
-// --- 测试 ---
-const myUuid = '018c8e8a-9d4e-7890-a123-456789abcdef'
-const myUlid = uuidToUlid(myUuid)
-// 01HQ78N7AEF28A28SHCW9AXBVF (示例)
-console.log(`UUID -> ULID: ${myUlid}`)
-console.log(`ULID -> UUID: ${ulidToUuid(myUlid)}`)
+export {
+	uuidToUlid,
+	ulidToUuid,
+}

@@ -4,6 +4,7 @@ import { badRequest, created, jsonResponse, notFound } from './handlers.js'
 import * as db from './db.js'
 import { cors } from 'hono/cors'
 import { trimTrailingSlash } from 'hono/trailing-slash'
+import { ulidToUuid, uuidToUlid } from './utils.js'
 
 const app = new Hono()
 app.use('*', trimTrailingSlash())
@@ -26,7 +27,9 @@ app.get(`${apiVersion}/customers`, async(c)=> {
 	if (gender){ filters.gender = gender }
 	if (phone){ filters.phone = phone }
 	if (extra){ filters.extra = extra }
-	if (id){ filters.id = +id }
+	if (id){
+		filters.id = ulidToUuid(id)
+	}
 
 	// 分頁參數，單數一個函數進行解析
 	const page = parseInt(c.req.query('page')) || 1
@@ -34,14 +37,33 @@ app.get(`${apiVersion}/customers`, async(c)=> {
 	const pagination = { page, pageSize }
 
 	const result = await db.getAllCustomers(filters, pagination)
-	return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } })
+	// 轉換出參中的 id 為 ULID
+	const transformedResult = {
+		...result,
+		data: result.data.map(customer=> ({
+			...customer,
+			id: uuidToUlid(customer.id),
+		})),
+	}
+	return new Response(JSON.stringify(transformedResult), { headers: { 'Content-Type': 'application/json' } })
 })
 
 app.get(`${apiVersion}/customers/:id`, async(c)=> {
-	const id = c.req.param('id')
+	const ulid = c.req.param('id')
+	let id
+	try {
+		id = ulidToUuid(ulid)
+	} catch{
+		id = ulid
+	}
 	const customer = await db.getCustomerById(id)
-	if (!customer){ return notFound(id) }
-	return jsonResponse(customer)
+	if (!customer){ return notFound(ulid) }
+	// 轉換出參中的 id 為 ULID
+	const transformedCustomer = {
+		...customer,
+		id: uuidToUlid(customer.id),
+	}
+	return jsonResponse(transformedCustomer)
 })
 
 app.post(`${apiVersion}/customers`, async(c)=> {
@@ -61,14 +83,24 @@ app.post(`${apiVersion}/customers`, async(c)=> {
 			phone,
 			extra,
 		})
-		return created(createdCustomer)
+		const transformedCustomer = {
+			...createdCustomer,
+			id: uuidToUlid(createdCustomer.id),
+		}
+		return created(transformedCustomer)
 	} catch(e){
 		return badRequest(e.message)
 	}
 })
 
 app.put(`${apiVersion}/customers/:id`, async(c)=> {
-	const id = c.req.param('id')
+	const ulid = c.req.param('id')
+	let id
+	try {
+		id = ulidToUuid(ulid)
+	} catch{
+		id = ulid
+	}
 	const body = await c.req.json().catch(()=> null)
 	if (!body){ return badRequest('invalid json') }
 	const {
@@ -84,21 +116,37 @@ app.put(`${apiVersion}/customers/:id`, async(c)=> {
 			phone,
 			extra,
 		})
-		if (!replaced){ return notFound(id) }
-		return jsonResponse(replaced)
+		if (!replaced){ return notFound(ulid) }
+		// 轉換出參中的 id 為 ULID
+		const transformedCustomer = {
+			...replaced,
+			id: uuidToUlid(replaced.id),
+		}
+		return jsonResponse(transformedCustomer)
 	} catch(e){
 		return badRequest(e.message)
 	}
 })
 
 app.patch(`${apiVersion}/customers/:id`, async(c)=> {
-	const id = c.req.param('id')
+	const ulid = c.req.param('id')
+	let id
+	try {
+		id = ulidToUuid(ulid)
+	} catch{
+		id = ulid
+	}
 	const body = await c.req.json().catch(()=> null)
 	if (!body){ return badRequest('invalid json') }
 	// allow partial updates; the db.updateCustomer accepts fields present in body
 	const updated = await db.updateCustomer(id, body)
-	if (!updated){ return notFound(id) }
-	return jsonResponse(updated)
+	if (!updated){ return notFound(ulid) }
+	// 轉換出參中的 id 為 ULID
+	const transformedCustomer = {
+		...updated,
+		id: uuidToUlid(updated.id),
+	}
+	return jsonResponse(transformedCustomer)
 })
 
 app.delete(`${apiVersion}/customers`, async(c)=> {
@@ -111,7 +159,16 @@ app.delete(`${apiVersion}/customers`, async(c)=> {
 	}
 
 	try {
-		const deletedCount = await db.deleteCustomers(ids)
+		// 轉換 ULID 入參為 UUID
+		const convertedIds = ids.map((ulid)=> {
+			try {
+				const uuid = ulidToUuid(ulid)
+				return uuid
+			} catch{
+				return ulid
+			}
+		})
+		const deletedCount = await db.deleteCustomers(convertedIds)
 		return jsonResponse({
 			deleted: deletedCount,
 			message: `Successfully deleted ${deletedCount} customer(s)`,
@@ -122,9 +179,15 @@ app.delete(`${apiVersion}/customers`, async(c)=> {
 })
 
 app.delete(`${apiVersion}/customers/:id`, async(c)=> {
-	const id = c.req.param('id')
+	const ulid = c.req.param('id')
+	let id
+	try {
+		id = ulidToUuid(ulid)
+	} catch{
+		id = ulid
+	}
 	const ok = await db.deleteCustomer(id)
-	if (!ok){ return notFound(id) }
+	if (!ok){ return notFound(ulid) }
 	return new Response(null, { status: 204 })
 })
 
